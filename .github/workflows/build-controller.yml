@@ -3,10 +3,16 @@ name: build-controller
 # 控制端（含「入网审批」tab）自动构建
 # 复用上游 flutter-build.yml 的完整构建链（vcpkg / bridge / flutter），
 # Windows x64 产物即我们的控制端。其余平台的 job 会一并跑，取 Windows 产物即可。
+#
+# permissions: 嵌套工作流里有 job（generate-sbom / publish-signed-update-metadata）
+# 请求 contents: write，调用方必须显式授予，否则 startup_failure。
 on:
   push:
     branches: [ enroll-controller ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-controller:
