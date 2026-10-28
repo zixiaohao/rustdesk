@@ -66,6 +66,10 @@ class _EnrollApprovalViewState extends State<EnrollApprovalView> {
     super.dispose();
   }
 
+  /// 尚未配置审批服务器地址
+  bool get _unconfigured =>
+      bind.getLocalFlutterOption(k: kEnrollAdminUrl).isEmpty;
+
   String _baseUrl() {
     var u = bind.getLocalFlutterOption(k: kEnrollAdminUrl).trim();
     if (u.isNotEmpty && u.endsWith('/')) u = u.substring(0, u.length - 1);
@@ -86,11 +90,11 @@ class _EnrollApprovalViewState extends State<EnrollApprovalView> {
           .get(Uri.parse('$url/enroll/api/list?token=${Uri.encodeQueryComponent(token)}'))
           .timeout(const Duration(seconds: 5));
       if (res.statusCode == 401) {
-        setState(() => _err = 'Token 不正确');
+        if (mounted) setState(() => _err = 'Token 不正确');
         return;
       }
       if (res.statusCode != 200) {
-        setState(() => _err = '服务端返回 ${res.statusCode}');
+        if (mounted) setState(() => _err = '服务端返回 ${res.statusCode}');
         return;
       }
       final list = (jsonDecode(utf8.decode(res.bodyBytes)) as List)
@@ -108,12 +112,14 @@ class _EnrollApprovalViewState extends State<EnrollApprovalView> {
         _notifyNewDevice(pending);
       }
       _lastPending = pending;
-      setState(() {
-        _items = list;
-        _err = '';
-      });
+      if (mounted) {
+        setState(() {
+          _items = list;
+          _err = '';
+        });
+      }
     } catch (e) {
-      if (!quiet) setState(() => _err = '连接失败：$e');
+      if (!quiet && mounted) setState(() => _err = '连接失败：$e');
     } finally {
       _busy = false;
     }
@@ -140,10 +146,10 @@ class _EnrollApprovalViewState extends State<EnrollApprovalView> {
               '$url/enroll/api/$action?token=${Uri.encodeQueryComponent(token)}&id=${Uri.encodeQueryComponent(id)}'))
           .timeout(const Duration(seconds: 5));
       if (res.statusCode != 200) {
-        setState(() => _err = '操作失败 ${res.statusCode}');
+        if (mounted) setState(() => _err = '操作失败 ${res.statusCode}');
       }
     } catch (e) {
-      setState(() => _err = '操作失败：$e');
+      if (mounted) setState(() => _err = '操作失败：$e');
     }
     _refresh();
   }
@@ -151,7 +157,7 @@ class _EnrollApprovalViewState extends State<EnrollApprovalView> {
   Future<void> _saveCfg() async {
     await bind.setLocalFlutterOption(k: kEnrollAdminUrl, v: _urlCtrl.text.trim());
     await bind.setLocalFlutterOption(k: kEnrollAdminToken, v: _tokenCtrl.text.trim());
-    setState(() => _cfgOpen = false);
+    if (mounted) setState(() => _cfgOpen = false);
     _lastPending = -1;
     _refresh();
   }
@@ -168,8 +174,6 @@ class _EnrollApprovalViewState extends State<EnrollApprovalView> {
     final pending = _items.where((e) => e.status == 'pending').toList();
     final approved = _items.where((e) => e.status == 'approved').toList();
     final rejected = _items.where((e) => e.status == 'rejected').toList();
-    final unconfigured =
-        bind.getLocalFlutterOption(k: kEnrollAdminUrl).isEmpty;
 
     return Column(
       children: [
@@ -221,7 +225,7 @@ class _EnrollApprovalViewState extends State<EnrollApprovalView> {
                     fontWeight: FontWeight.w500,
                     color: p > 0 ? Colors.orange : null)),
           ),
-          if (unconfigured) _cfgButton(),
+          if (_unconfigured) _cfgButton(),
           IconButton(
               tooltip: '刷新',
               icon: const Icon(Icons.refresh, size: 18),
