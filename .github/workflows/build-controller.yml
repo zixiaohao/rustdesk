@@ -1,0 +1,16 @@
+name: build-controller
+
+# 控制端（含「入网审批」tab）自动构建
+# 复用上游 flutter-build.yml 的完整构建链（vcpkg / bridge / flutter），
+# Windows x64 产物即我们的控制端。其余平台的 job 会一并跑，取 Windows 产物即可。
+on:
+  push:
+    branches: [ enroll-controller ]
+  workflow_dispatch:
+
+jobs:
+  build-controller:
+    uses: ./.github/workflows/flutter-build.yml
+    with:
+      upload-artifact: true
+      upload-tag: "controller"
