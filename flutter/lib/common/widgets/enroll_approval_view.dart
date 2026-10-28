@@ -15,6 +15,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:http/http.dart' as http;
 
@@ -189,7 +190,7 @@ class _EnrollApprovalViewState extends State<EnrollApprovalView> {
               : ListView(
                   children: [
                     _section('待审批（${pending.length}）', Colors.orange, pending),
-                    _section('已入网（${approved.length}）', Colors.green, approved),
+                    _section('已入网（${approved.length}）· 点击设备行即可远程连接', Colors.green, approved),
                     _section('已拒绝（${rejected.length}）', Colors.redAccent, rejected),
                     const SizedBox(height: 24),
                   ],
@@ -316,9 +317,18 @@ class _EnrollApprovalViewState extends State<EnrollApprovalView> {
       actions = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextButton(
-              onPressed: () => _decide(e.id, 'reject'),
-              child: const Text('移出')),
+          IconButton(
+              tooltip: '连接远程桌面',
+              icon: const Icon(Icons.play_arrow, size: 20),
+              onPressed: () => connect(context, e.id)),
+          IconButton(
+              tooltip: '文件传输',
+              icon: const Icon(Icons.folder_outlined, size: 18),
+              onPressed: () => connect(context, e.id, isFileTransfer: true)),
+          IconButton(
+              tooltip: '移出（需重新审批才可接入）',
+              icon: const Icon(Icons.link_off, size: 16),
+              onPressed: () => _decide(e.id, 'reject')),
           IconButton(
               tooltip: '删除记录',
               icon: const Icon(Icons.delete_outline, size: 16),
@@ -348,6 +358,8 @@ class _EnrollApprovalViewState extends State<EnrollApprovalView> {
           '${e.status == 'pending' ? '  ·  已尝试 ${e.hits} 次' : ''}',
           style: const TextStyle(fontSize: 12)),
       trailing: actions,
+      // 已入网设备：点击整行直接发起远程连接
+      onTap: e.status == 'approved' ? () => connect(context, e.id) : null,
     );
   }
 }
